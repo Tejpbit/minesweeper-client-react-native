@@ -4,11 +4,18 @@ import {
   LOBBY_CHAT,
   LOBBY_CONNECTED,
   USER_LOGGED_IN,
-  LOGIN_ERROR
+  LOGIN_ERROR,
+  PLAY,
+  LIST
 } from "./reducers/lobbyReducer";
 
 import _ from "lodash";
-import { SET_USER_ID, setUserName } from "./reducers/userReducer";
+import { setUserName } from "./reducers/userReducer";
+import { FDAT, GAME } from "./reducers/gameReducer";
+import {
+  updateConnectionState,
+  ConnectionStatus
+} from "./reducers/connectionReducer";
 
 /*
 USER 10342 guest_baqasf
@@ -34,8 +41,11 @@ export class Backend {
 
     this.ws.onopen = () => {
       // connection opened
+      console.log("On open ws");
       dispatch(setUserName("guest_tejp_react_native"));
+      dispatch(updateConnectionState(ConnectionStatus.CONNECTED));
       this.ws.send("USER 30000 guest_tejp_react_native"); // send a message
+      console.log("Sending USER message");
     };
 
     this.ws.onmessage = e => {
@@ -51,7 +61,8 @@ export class Backend {
 
     this.ws.onclose = e => {
       // connection closed
-      console.log("error closed", e);
+      console.log("closed", e);
+      dispatch(updateConnectionState(ConnectionStatus.DISCONNECTED));
     };
   }
 
@@ -62,21 +73,30 @@ export class Backend {
   handle_message(message: string) {
     const parts = message.split(" ");
     const actionName = parts[0];
-    //this.dispatch()
 
     const actionTemplate = actionTemplates[actionName];
-    console.log("Action:", actionName, actionTemplates[actionName]);
-
+    // console.log("Action:", actionName, actionTemplates[actionName]);
+    if (!actionTemplate) {
+      console.warn(`No action template for ${actionName}`);
+    }
     const paramValues = {
       fullParam: message.substr(5),
       params: parts.slice(1)
     };
 
     if (actionTemplate.handler) {
-      actionTemplate.handler(paramValues);
+      console.log(`Handler found for ${actionName}`);
+
+      const payload = actionTemplate.handler(paramValues);
+      this.dispatch({
+        type: actionTemplate.type,
+        payload
+      });
     } else {
       // No handler.
       // Assume there exists params array with names for the parameters
+      console.log(`No handler for ${actionName}, using params`);
+
       const paramNames = actionTemplate.params;
       const paramTuples = _.zip(paramNames, paramValues.params);
 
@@ -89,10 +109,12 @@ export class Backend {
         },
         {}
       );
-      this.dispatch({
+      const backendAction = {
         type: actionTemplate.type,
         payload: actionPayload
-      });
+      };
+
+      this.dispatch(backendAction);
     }
   }
 }
@@ -161,11 +183,8 @@ const actionTemplates = {
     })
   },
   PLAY: {
-    type: "lobby/chatMessage",
-    handler: e => ({
-      timestamp: new Date().toLocaleString(),
-      message: `Game #${e.params[0]} started! ${e.params[1]} vs. ${e.params[2]}`
-    })
+    type: PLAY,
+    params: ["gameId", "player1", "player2"]
   },
   CONN: {
     type: LOBBY_CONNECTED,
@@ -188,7 +207,7 @@ const actionTemplates = {
     params: ["gameId", "playerIndex", "type", "value"]
   },
   FDAT: {
-    type: "games/fieldData",
+    type: FDAT,
     params: ["gameId", "x", "y", "type", "playerIndex", "values"]
   },
   YEND: {
@@ -229,14 +248,22 @@ const actionTemplates = {
     params: ["gameId"]
   },
   GAME: {
-    type: "games/newGame",
-    params: ["gameId", "yourIndex"]
+    type: GAME,
+    params: ["gameId", "userIndex"]
   },
   LIST: {
     // players and scores are comma-separated
-    type: "lobby/gameList",
+    type: LIST,
     params: ["gameId", "players", "scores", "currentPlayerIndex", "timestamp"],
-    handler: e => ({ paramsCount: e.params.length })
+    handler: e => {
+      return {
+        gameId: e.params[0],
+        users: e.params[1].split(","),
+        scores: e.params[2].split(","),
+        currentPlayerIndex: e.params[3],
+        timestamp: new Date(e.params[4])
+      };
+    }
   },
   SEND: {
     type: "games/changeGameId",
@@ -245,5 +272,22 @@ const actionTemplates = {
   USER: {
     type: USER_ONLINE,
     params: ["userName", "rating", "country", "userId", "picture"]
+  },
+  INVS: {
+    type: "unimplemented",
+    params: []
+  },
+  MOPT: {
+    type: "unimplemented",
+    params: []
+  },
+  EXIT: {
+    type: "unimplemented",
+    params: []
+  },
+  ADIO: {
+    //Play sound
+    type: "unimplemented",
+    params: ["soundResouce"] //https://docs.expo.io/versions/latest/sdk/audio/
   }
 };

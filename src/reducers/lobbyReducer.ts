@@ -5,6 +5,7 @@ export const LOBBY_CONNECTED = "LOBBY_CONNECTED";
 export const USER_LOGGED_IN = "USER_LOGGED_IN";
 export const LOGIN_ERROR = "LOGIN_ERROR";
 export const LIST = "LIST";
+export const PLAY = "PLAY";
 
 export interface User {
   userName: string;
@@ -16,26 +17,49 @@ export interface User {
 
 export interface GameStatus {
   gameId: string;
-  players: string;
-  scores: string;
+  users: string[];
+  scores: string[];
   currentPlayerIndex: string;
   timestamp: string;
+}
+
+export class ChatMessage {
+  sender: string;
+  message: string;
+  timestamp: Date;
+  constructor(sender: string, message: string, timestamp: Date) {
+    this.sender = sender;
+    this.message = message;
+    this.timestamp = timestamp;
+  }
 }
 
 export interface LobbyState {
   games: GameStatus[];
   onlinePlayers: Record<string, User>;
   onlineAIs: Record<string, User>;
+  globalChat: ChatMessage[];
 }
 
 export const lobbyReducer = (state = initialLobby, action) => {
-  console.log("Lobby reducer action", action);
+  //   console.log("Lobby reducer action", action);
 
   switch (action.type) {
+    case PLAY:
+      return {
+        ...state,
+        globalChat: [
+          ...state.globalChat,
+          new ChatMessage("asd", "asd", new Date())
+        ]
+      };
     case LIST:
       return {
         ...state,
-        [action.payload.gameId]: action.payload
+        games: {
+          ...state.games,
+          [action.payload.gameId]: action.payload
+        }
       };
 
     case USER_ONLINE:
@@ -73,5 +97,6 @@ export const lobbyReducer = (state = initialLobby, action) => {
 const initialLobby: LobbyState = {
   games: [],
   onlinePlayers: {},
-  onlineAIs: {}
+  onlineAIs: {},
+  globalChat: []
 };

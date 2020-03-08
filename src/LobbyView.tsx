@@ -12,8 +12,12 @@ import Chat from "../assets/chat.svg";
 import { ChatView } from "./ChatView";
 import { useSelector } from "react-redux";
 import { LobbyState, User } from "./reducers/lobbyReducer";
-import { BackendContext } from "../App";
 import { Backend } from "./backend";
+import { FieldTile } from "./FieldTile";
+import { FieldType, FieldMark } from "./reducers/gameReducer";
+import { StoreState } from "./reducers/rootReducer";
+import { BackendContext } from "../BackendContext";
+import { ConnectionStatus } from "./reducers/connectionReducer";
 
 const Tab = createBottomTabNavigator();
 
@@ -36,26 +40,43 @@ export const LobbyView = () => {
 
 const LobbyGamesAndPlayers = () => {
   const navigation = useNavigation();
-  const lobbyState: LobbyState = useSelector(state => state.lobbyState);
-  const userState: User = useSelector(state => state.userState);
-
+  const lobbyState: LobbyState = useSelector(
+    (state: StoreState) => state.lobbyState
+  );
+  const userState: User = useSelector((state: StoreState) => state.userState);
+  const connectionStatus = useSelector(
+    (state: StoreState) => state.connectionState.connectionStatus
+  );
   const backend: Backend = useContext(BackendContext);
 
   return (
     <View>
+      <Text>
+        {connectionStatus === ConnectionStatus.CONNECTED
+          ? "Connected"
+          : "Disconnected"}
+      </Text>
       <ScrollView>
         <Header>Your Games</Header>
-        {lobbyState.games
-          .filter(g => g.players.includes(userState.userName))
+        {Object.values(lobbyState.games)
+          .filter(g => g.users.includes(userState.userName))
           .map(g => (
-            <>
-              <GameRow
-                onPress={() => navigation.navigate("GameView")}
-                pressText="Resume"
-              />
-              <Divider />
-            </>
+            <GameRow
+              key={g.gameId}
+              {...g}
+              onPress={() => {
+                navigation.navigate("GameView");
+                backend.send(`RESU ${g.gameId}`);
+              }}
+              pressText="Resume"
+            />
           ))}
+        <Button
+          title="asd"
+          onPress={() => {
+            navigation.navigate("GameView");
+          }}
+        />
         <Header>Online Players</Header>
         {Object.values(lobbyState.onlinePlayers).map(onlinePlayer => (
           <PlayerRow
@@ -77,10 +98,16 @@ const LobbyGamesAndPlayers = () => {
         ))}
 
         <Header>Other Games</Header>
-        <GameRow
-          onPress={() => navigation.navigate("GameView")}
-          pressText="Observe"
-        />
+        {Object.values(lobbyState.games)
+          .filter(g => !g.users.includes(userState.userName))
+          .map(g => (
+            <GameRow
+              key={g.gameId}
+              {...g}
+              onPress={() => navigation.navigate("GameView")}
+              pressText="Observe"
+            />
+          ))}
       </ScrollView>
     </View>
   );

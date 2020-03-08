@@ -3,12 +3,21 @@ import { View } from "react-native";
 import styled from "styled-components";
 import { PlayerIcon, PlayerNameText, PressText } from "./common";
 import { TouchableWithoutFeedback } from "react-native-gesture-handler";
+import { GameStatus } from "./reducers/lobbyReducer";
 
-interface GameRowProps {
+interface GameRowProps extends GameStatus {
   onPress: () => void;
   pressText: string;
 }
-export const GameRow = ({ onPress, pressText }: GameRowProps) => {
+export const GameRow = ({
+  onPress,
+  pressText,
+  gameId,
+  users,
+  scores,
+  timestamp,
+  currentPlayerIndex
+}: GameRowProps) => {
   return (
     <TouchableWithoutFeedback onPress={onPress}>
       <View
@@ -24,9 +33,9 @@ export const GameRow = ({ onPress, pressText }: GameRowProps) => {
           <PlayerRow>
             <PlayerIconBox>
               <PlayerIcon source={require("../assets/guest_profile_pic.png")} />
-              <PlayerNameText>guest_v65507</PlayerNameText>
+              <PlayerNameText>{users[0]}</PlayerNameText>
             </PlayerIconBox>
-            <ScoreText>22</ScoreText>
+            <ScoreText>{scores[0]}</ScoreText>
           </PlayerRow>
           <PlayerRow>
             <PlayerIconBox>
@@ -34,9 +43,9 @@ export const GameRow = ({ onPress, pressText }: GameRowProps) => {
                 source={require("../assets/guest_profile_pic.png")}
                 style={{}}
               />
-              <PlayerNameText>Loser</PlayerNameText>
+              <PlayerNameText>{users[1]}</PlayerNameText>
             </PlayerIconBox>
-            <ScoreText>23</ScoreText>
+            <ScoreText>{scores[1]}</ScoreText>
           </PlayerRow>
         </View>
         <View>

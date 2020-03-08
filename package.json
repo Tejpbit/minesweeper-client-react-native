@@ -8,13 +8,16 @@
     "eject": "expo eject"
   },
   "dependencies": {
-    "@dudigital/react-native-zoomable-view": "^1.0.15",
+    "@dudigital/react-native-zoomable-view": "1.0.7",
     "@react-native-community/masked-view": "0.1.5",
     "@react-navigation/bottom-tabs": "^5.0.7",
     "@react-navigation/native": "^5.0.7",
     "@react-navigation/stack": "^5.0.9",
     "@types/": "react-navigation/tabs",
+    "@types/react-redux": "^7.1.7",
+    "@types/redux": "^3.6.0",
     "expo": "~36.0.0",
+    "expo-av": "~8.0.0",
     "lodash": "^4.17.15",
     "react": "~16.9.0",
     "react-dom": "~16.9.0",

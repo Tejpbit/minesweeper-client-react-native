@@ -1,5 +1,13 @@
-import React from "react";
-import { View, Text, Image } from "react-native";
+import React, { useContext } from "react";
+import {
+  View,
+  Text,
+  Image,
+  TouchableWithoutFeedback,
+  Dimensions
+} from "react-native";
+import { useSelector } from "react-redux";
+import Unknown from "../assets/classic-minesweeper-res/unknown.png";
 import BlueFlag from "../assets/classic-minesweeper-res/m1.png";
 import RedFlag from "../assets/classic-minesweeper-res/m2.png";
 import Empty from "../assets/classic-minesweeper-res/0.png";
@@ -12,36 +20,53 @@ import Six from "../assets/classic-minesweeper-res/6.png";
 import Seven from "../assets/classic-minesweeper-res/7.png";
 import Eight from "../assets/classic-minesweeper-res/8.png";
 import { Player } from "./models";
+import { FieldType, Field } from "./reducers/gameReducer";
+import { Backend } from "./backend";
+import { BackendContext } from "../BackendContext";
 
 interface Props {
-  neighbours: number;
-  isOpen: boolean;
-  isMine: boolean;
-  clickedBy: Player;
+  x: number;
+  y: number;
 }
 
-const numbersToIconMap = {
-  0: Empty,
-  1: One,
-  2: Two,
-  3: Three,
-  4: Four,
-  5: Five,
-  6: Six,
-  7: Seven,
-  8: Eight
+const fieldTypeToResouceMap = {
+  [FieldType.Empty]: Empty,
+  [FieldType.Unknown]: Unknown,
+  [FieldType.One]: One,
+  [FieldType.Two]: Two,
+  [FieldType.Three]: Three,
+  [FieldType.Four]: Four,
+  [FieldType.Five]: Five,
+  [FieldType.Six]: Six,
+  [FieldType.Seven]: Seven,
+  [FieldType.Eight]: Eight
 };
 
-export const FieldTile = ({ neighbours, isMine, isOpen, clickedBy }: Props) => {
-  let Icon = numbersToIconMap[neighbours];
-
-  if (isMine && isOpen) {
-    Icon = clickedBy === Player.BLUE ? BlueFlag : RedFlag;
-  }
-
+export const FieldTile = ({ x, y }: Props) => {
+  const Backend: Backend = useContext(BackendContext);
+  const gameId = useSelector(state => state.gameState.gameId);
+  const field = useSelector(state => state.gameState.fields[y][x]);
+  let Icon = fieldTypeToResouceMap[field.fieldType];
+  const smallestScreenDimention = Math.min(
+    Dimensions.get("window").width,
+    Dimensions.get("window").height
+  );
   return (
-    <View>
-      <Image style={{ width: 50, height: 50 }} source={Icon} />
-    </View>
+    <TouchableWithoutFeedback
+      onPress={() => {
+        console.log("tilePressed", x, y, gameId);
+        Backend.send(`WEAP ${gameId} ${x} ${y} P`);
+      }}
+    >
+      <View>
+        <Image
+          style={{
+            width: smallestScreenDimention / 16,
+            height: smallestScreenDimention / 16
+          }}
+          source={Icon}
+        />
+      </View>
+    </TouchableWithoutFeedback>
   );
 };

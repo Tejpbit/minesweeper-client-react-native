@@ -1,18 +1,28 @@
 import "react-native-gesture-handler";
-import React, { useEffect, useState, createContext } from "react";
+import React from "react";
 import _ from "lodash";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 
-import { Provider, useDispatch } from "react-redux";
-import { createStore } from "redux";
+import { Provider } from "react-redux";
+import { compose, createStore } from "redux";
 import { rootReducer } from "./src/reducers/rootReducer";
 
 import { LobbyView } from "./src/LobbyView";
 import { GameView } from "./src/GameView";
-import { Backend } from "./src/backend";
+import { BackendProvider } from "./BackendContext";
 
-const store = createStore(rootReducer);
+// TS declaration for making redux devtools extension stop complaining in createStore below.
+declare global {
+  interface Window {
+    __REDUX_DEVTOOLS_EXTENSION__?: typeof compose;
+  }
+}
+
+const store = createStore(
+  rootReducer,
+  window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__()
+);
 const Stack = createStackNavigator();
 
 const App = () => {
@@ -27,23 +37,6 @@ const App = () => {
         </NavigationContainer>
       </BackendProvider>
     </Provider>
-  );
-};
-
-export let BackendContext;
-
-const BackendProvider = ({ children }) => {
-  const dispatch = useDispatch();
-  const [backend, _setBackend] = useState(
-    new Backend("stats.zomis.net:8083", dispatch)
-  );
-
-  BackendContext = createContext(backend);
-
-  return (
-    <BackendContext.Provider value={backend}>
-      {children}
-    </BackendContext.Provider>
   );
 };
 

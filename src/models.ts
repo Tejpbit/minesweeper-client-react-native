@@ -10,6 +10,10 @@ export class Point {
   public add(point: Point): Point {
     return new Point(this.x + point.x, this.y + point.y);
   }
+
+  public toString() {
+    return `{x:${this.x},y:${this.y}`;
+  }
 }
 
 export enum Player {
