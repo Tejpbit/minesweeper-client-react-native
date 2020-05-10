@@ -1,15 +1,14 @@
 import _ from "lodash";
 
-import { PLAY } from "./lobbyReducer";
+import { PLAY, LIST } from "./lobbyReducer";
 import { Point } from "../models";
 
 export const FDAT = "FDAT";
 export const GAME = "GAME";
+export const GAME_OVER = "GAME_OVER";
 
 export enum FieldType {
   Unknown,
-  Empty,
-  Mine,
   One,
   Two,
   Three,
@@ -17,22 +16,24 @@ export enum FieldType {
   Five,
   Six,
   Seven,
-  Eight
+  Eight,
+  Mine,
+  Empty
 }
 
 const fieldValueFromNumber = (number: number) => {
-  const map = {
-    0: FieldType.Empty,
-    1: FieldType.One,
-    2: FieldType.Two,
-    3: FieldType.Three,
-    4: FieldType.Four,
-    5: FieldType.Five,
-    6: FieldType.Six,
-    7: FieldType.Seven,
-    8: FieldType.Eight
-  };
-  return map[number];
+  const map = [
+    FieldType.Empty,
+    FieldType.One,
+    FieldType.Two,
+    FieldType.Three,
+    FieldType.Four,
+    FieldType.Five,
+    FieldType.Six,
+    FieldType.Seven,
+    FieldType.Eight
+  ];
+  return map[number] || FieldType.Empty;
 };
 
 export enum FieldMark {
@@ -51,7 +52,11 @@ export interface Field {
 
 export interface Game {
   gameId: number;
+  players: [string, string];
+  lastPresses: [Point | null, Point | null];
+  scores: [number, number];
   fields: Field[][];
+  gameOver: false;
 }
 
 const initialTilesState = (): Field[][] => {
@@ -76,28 +81,46 @@ const initialTilesState = (): Field[][] => {
 
 const initialGameState: Game = {
   gameId: -1,
-  fields: initialTilesState()
+  players: ["", ""],
+  lastPresses: [null, null],
+  scores: [0, 0],
+  fields: initialTilesState(),
+  gameOver: false
 };
 
-export const gameReducer = (state = initialGameState, action) => {
-  if (action.type == "GAME" || action.type == "FDAT") {
-    console.log("GameReducer running", action.type, action);
-  }
-
+export const gameReducer = (state = initialGameState, action: any) => {
   switch (action.type) {
+    case PLAY:
+      return {
+        ...state,
+        gameId: action.payload.gameId,
+        players: [action.payload.player1, action.payload.player2]
+      };
     case GAME:
-      console.log("GAME", action);
       return { ...state, gameId: action.payload.gameId };
+    case GAME_OVER:
+      return {
+        ...state,
+        gameOver: true
+      };
+    case LIST:
+      return {
+        ...state,
+        scores: action.payload.scores
+      };
     case FDAT:
+      const clickedPos = new Point(action.payload.x, action.payload.y);
       const fdatValues: string = action.payload.values;
       const number = fdatValues.substring(2); // The number of the field, i.e. neighbours
-      const isMine = fdatValues.substring(1, 2); // Is it a mine
+      const isMine = fdatValues.substring(1, 2) === "1"; // Is it a mine
       const fieldType = fdatValues.substring(0, 1); // The state of the field 0:unpressed, 1:pressed, 2:blocked
-      console.log("FDAT reducer", number, isMine, fieldType);
-
-      const clickedPos = new Point(action.payload.x, action.payload.y);
+      const playerIndex = parseInt(action.payload.playerIndex);
+      const lastPresses = [...state.lastPresses];
+      lastPresses[playerIndex] = clickedPos;
+      // varför kan playerIndex bli 3
       return {
-        gameId: state.gameId,
+        ...state,
+        lastPresses,
         fields: state.fields.map((row, y) => {
           return row.map((cell, x) => {
             if (
@@ -109,14 +132,19 @@ export const gameReducer = (state = initialGameState, action) => {
                   fieldType === "0" // 0 is unpressed. 2(blocked) is not supported
                     ? FieldType.Unknown
                     : fieldValueFromNumber(parseInt(number)),
-                clickedBy: action.payload.playerIndex,
+                clickedBy: parseInt(action.payload.playerIndex),
                 fieldMark:
                   action.payload.type === "mark"
                     ? FieldMark.Mark
                     : FieldMark.Play,
-                mine: isMine === "1",
+                mine: isMine,
                 value: parseInt(number),
                 pos: clickedPos
+              };
+            } else if (state.lastPresses.includes(new Point(x, y))) {
+              return {
+                ...state.fields[y][x],
+                fieldMark: FieldMark.Play
               };
             }
             return cell;

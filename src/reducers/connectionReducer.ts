@@ -6,7 +6,7 @@ export enum ConnectionStatus {
 }
 
 export interface ConnectionState {
-  connectionStatus: ConnectionStatus.DISCONNECTED;
+  connectionStatus: ConnectionStatus;
 }
 
 const initalState: ConnectionState = {

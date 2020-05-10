@@ -16,6 +16,7 @@ import {
   updateConnectionState,
   ConnectionStatus
 } from "./reducers/connectionReducer";
+import { batch } from "react-redux";
 
 /*
 USER 10342 guest_baqasf
@@ -27,50 +28,47 @@ VUE_APP_AUTH_API_URL=http://localhost:8082/
 VUE_APP_AUTH_REDIRECT_URL=http://localhost:8080/
 */
 
-export class Backend {
-  dispatch: any;
-  backendUrl: string;
-  ws: WebSocket;
+export const createBackend = (backendUrl: string, dispatch: Function) => {
+  let batchedMessages: any[] = [];
 
-  constructor(backendUrl, dispatch) {
-    this.dispatch = dispatch;
-    this.backendUrl = backendUrl;
-    console.log("Creating websocket");
+  console.log("Creating websocket");
+  let ws = new WebSocket(`wss://${backendUrl}/websocket`);
 
-    this.ws = new WebSocket(`wss://${backendUrl}/websocket`);
+  ws.onopen = () => {
+    console.log("On open ws");
+    dispatch(setUserName("guest_tejp_react_native"));
+    dispatch(updateConnectionState(ConnectionStatus.CONNECTED));
+    ws.send("USER 30000 guest_tejp_react_native"); // send a message
+    console.log("Sending USER message");
+  };
 
-    this.ws.onopen = () => {
-      // connection opened
-      console.log("On open ws");
-      dispatch(setUserName("guest_tejp_react_native"));
-      dispatch(updateConnectionState(ConnectionStatus.CONNECTED));
-      this.ws.send("USER 30000 guest_tejp_react_native"); // send a message
-      console.log("Sending USER message");
-    };
+  ws.onmessage = e => {
+    // a message was received
+    console.log("backend says: ", e.data);
+    batchedMessages.push(e.data);
+    handle_batched_messages();
+    // this.handle_message(e.data);
+  };
 
-    this.ws.onmessage = e => {
-      // a message was received
-      console.log("backend says: ", e.data);
-      this.handle_message(e.data);
-    };
+  onerror = e => {
+    // an error occurred
+    console.log("error", e);
+  };
 
-    this.ws.onerror = e => {
-      // an error occurred
-      console.log("error", e);
-    };
+  onclose = e => {
+    // connection closed
+    console.log("closed", e);
+    dispatch(updateConnectionState(ConnectionStatus.DISCONNECTED));
+  };
 
-    this.ws.onclose = e => {
-      // connection closed
-      console.log("closed", e);
-      dispatch(updateConnectionState(ConnectionStatus.DISCONNECTED));
-    };
-  }
+  const handle_batched_messages = _.debounce(() => {
+    batch(() => {
+      batchedMessages.forEach(handle_message);
+    });
+    batchedMessages = [];
+  }, 100);
 
-  send(message: string) {
-    this.ws.send(message);
-  }
-
-  handle_message(message: string) {
+  const handle_message = (message: string) => {
     const parts = message.split(" ");
     const actionName = parts[0];
 
@@ -78,6 +76,7 @@ export class Backend {
     // console.log("Action:", actionName, actionTemplates[actionName]);
     if (!actionTemplate) {
       console.warn(`No action template for ${actionName}`);
+      return;
     }
     const paramValues = {
       fullParam: message.substr(5),
@@ -85,23 +84,29 @@ export class Backend {
     };
 
     if (actionTemplate.handler) {
-      console.log(`Handler found for ${actionName}`);
-
       const payload = actionTemplate.handler(paramValues);
-      this.dispatch({
-        type: actionTemplate.type,
-        payload
-      });
+      if (payload.overrideBackendTopic) {
+        dispatch({
+          type: payload.overrideBackendTopic,
+          payload
+        });
+      } else {
+        dispatch({
+          type: actionTemplate.type,
+          payload
+        });
+      }
     } else {
       // No handler.
-      // Assume there exists params array with names for the parameters
-      console.log(`No handler for ${actionName}, using params`);
 
       const paramNames = actionTemplate.params;
-      const paramTuples = _.zip(paramNames, paramValues.params);
+      const paramTuples = (_.zip(
+        paramNames,
+        paramValues.params
+      ) as unknown) as [string, string];
 
-      const actionPayload = paramTuples.reduce(
-        (acc: Record<string, string>, curr: [string, string]) => {
+      const actionPayload = paramTuples.reduce<Record<string, string>>(
+        (acc, curr) => {
           return {
             ...acc,
             [curr[0]]: curr[1]
@@ -114,10 +119,16 @@ export class Backend {
         payload: actionPayload
       };
 
-      this.dispatch(backendAction);
+      dispatch(backendAction);
     }
-  }
-}
+  };
+
+  return {
+    send(message: string) {
+      ws.send(message);
+    }
+  };
+};
 
 // ADIO // spela audio
 // USRK //dunno
@@ -143,6 +154,7 @@ export class Backend {
 
 interface ActionParams {
   fullParam: string;
+  params: string[];
 }
 interface Action {
   type: string;
@@ -151,7 +163,7 @@ interface Action {
 }
 type ActionMap = Record<string, Action>;
 
-const actionTemplates = {
+const actionTemplates: Record<string, Action> = {
   USRK: { type: USER_LOGGED_IN, params: ["userName"] },
   PROT: { type: LOGIN_ERROR, handler: p => ({ message: p.fullParam }) },
   CHAT: {
@@ -256,12 +268,21 @@ const actionTemplates = {
     type: LIST,
     params: ["gameId", "players", "scores", "currentPlayerIndex", "timestamp"],
     handler: e => {
+      console.log("LIST", e);
+
+      if (e.params.length === 1) {
+        return {
+          gameId: e.params[0],
+          overrideBackendTopic: "GAME_OVER"
+        };
+      }
+
       return {
         gameId: e.params[0],
         users: e.params[1].split(","),
         scores: e.params[2].split(","),
         currentPlayerIndex: e.params[3],
-        timestamp: new Date(e.params[4])
+        timestamp: e.params[4]
       };
     }
   },

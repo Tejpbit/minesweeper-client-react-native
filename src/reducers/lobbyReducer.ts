@@ -1,3 +1,5 @@
+import { GAME_OVER } from "./gameReducer";
+
 export const USER_ONLINE = "USER_ONLINE";
 export const LOBBY_CHAT = "LOBBY_CHAT";
 export const OTHER_CHAT = "OTHER_CHAT";
@@ -41,7 +43,7 @@ export interface LobbyState {
   globalChat: ChatMessage[];
 }
 
-export const lobbyReducer = (state = initialLobby, action) => {
+export const lobbyReducer = (state = initialLobby, action: any) => {
   //   console.log("Lobby reducer action", action);
 
   switch (action.type) {
@@ -52,6 +54,14 @@ export const lobbyReducer = (state = initialLobby, action) => {
           ...state.globalChat,
           new ChatMessage("asd", "asd", new Date())
         ]
+      };
+    case GAME_OVER:
+      debugger;
+      const games = { ...state.games };
+      delete games[action.gameId];
+      return {
+        ...state,
+        games
       };
     case LIST:
       return {

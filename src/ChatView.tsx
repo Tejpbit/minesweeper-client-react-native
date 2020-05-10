@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Image } from "react-native";
-import styled from "styled-components";
+import styled from "styled-components/native";
 
 interface Props {}
 export const ChatView = ({}: Props) => {
@@ -24,7 +24,12 @@ export const ChatView = ({}: Props) => {
   );
 };
 
-const IncomingMessageRow = ({ nick, message }) => {
+interface IncomingMessageRowProps {
+  nick: string;
+  message: string;
+}
+
+const IncomingMessageRow = ({ nick, message }: IncomingMessageRowProps) => {
   return (
     <IncomingMessage>
       <Image
@@ -39,7 +44,11 @@ const IncomingMessageRow = ({ nick, message }) => {
   );
 };
 
-const OutgoingMessageRow = ({ message }) => {
+interface OutgoingMessageRowProps {
+  message: string;
+}
+
+const OutgoingMessageRow = ({ message }: OutgoingMessageRowProps) => {
   return (
     <OutgoingMessage>
       <MessageText>{message}</MessageText>

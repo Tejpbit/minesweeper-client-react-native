@@ -1,7 +1,7 @@
 import React, { useReducer, useContext } from "react";
 import { View, Text, Button, Image } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import styled from "styled-components";
+import styled from "styled-components/native";
 import { GameRow } from "./GameRow";
 import { Divider } from "./common";
 import { PlayerRow } from "./PlayerRow";
@@ -12,11 +12,10 @@ import Chat from "../assets/chat.svg";
 import { ChatView } from "./ChatView";
 import { useSelector } from "react-redux";
 import { LobbyState, User } from "./reducers/lobbyReducer";
-import { Backend } from "./backend";
 import { FieldTile } from "./FieldTile";
 import { FieldType, FieldMark } from "./reducers/gameReducer";
 import { StoreState } from "./reducers/rootReducer";
-import { BackendContext } from "../BackendContext";
+import { BackendContext, useBackend } from "../BackendContext";
 import { ConnectionStatus } from "./reducers/connectionReducer";
 
 const Tab = createBottomTabNavigator();
@@ -38,16 +37,17 @@ export const LobbyView = () => {
   );
 };
 
+const selectConnectionStatus = (state: StoreState) =>
+  state.connectionState.connectionStatus;
+
 const LobbyGamesAndPlayers = () => {
   const navigation = useNavigation();
   const lobbyState: LobbyState = useSelector(
     (state: StoreState) => state.lobbyState
   );
   const userState: User = useSelector((state: StoreState) => state.userState);
-  const connectionStatus = useSelector(
-    (state: StoreState) => state.connectionState.connectionStatus
-  );
-  const backend: Backend = useContext(BackendContext);
+  const connectionStatus = useSelector(selectConnectionStatus);
+  const backend = useBackend();
 
   return (
     <View>
@@ -66,6 +66,8 @@ const LobbyGamesAndPlayers = () => {
               {...g}
               onPress={() => {
                 navigation.navigate("GameView");
+                console.log("Resuming game", g.gameId);
+
                 backend.send(`RESU ${g.gameId}`);
               }}
               pressText="Resume"
@@ -83,7 +85,7 @@ const LobbyGamesAndPlayers = () => {
             bold={onlinePlayer.userName == userState.userName}
             key={onlinePlayer.userId}
             {...onlinePlayer}
-            onPress={() => navigation.navigate("GameView")}
+            onPress={() => backend.send(`INVT ${onlinePlayer.userName}`)}
           />
         ))}
         <Header>Online AIs</Header>

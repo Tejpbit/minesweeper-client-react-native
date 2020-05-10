@@ -1,6 +1,6 @@
 import React from "react";
 import { View } from "react-native";
-import styled from "styled-components";
+import styled from "styled-components/native";
 import { PlayerIcon, PlayerNameText, PressText } from "./common";
 import { TouchableWithoutFeedback } from "react-native-gesture-handler";
 import { GameStatus } from "./reducers/lobbyReducer";

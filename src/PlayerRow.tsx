@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, Image } from "react-native";
 import { TouchableWithoutFeedback } from "react-native-gesture-handler";
 import { PlayerIcon, PlayerNameText, PressText } from "./common";
-import styled from "styled-components";
+import styled from "styled-components/native";
 
 interface Props {
   onPress: () => void;
